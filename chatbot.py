@@ -10,9 +10,12 @@ import streamlit as st
 # Load Firebase credentials from Streamlit Secrets
 firebase_key = st.secrets["firebase"]
 
+# Fix special characters in the private key
+firebase_key["private_key"] = firebase_key["private_key"].replace("\\n", "\n")
+
 # Save the credentials as a temporary JSON file
 with open("temp_firebase_key.json", "w") as json_file:
-    json.dump(firebase_key, json_file)
+    json.dump(firebase_key, json_file, indent=4)
 
 # Use the temporary file to initialize Firebase
 cred = credentials.Certificate("temp_firebase_key.json")
