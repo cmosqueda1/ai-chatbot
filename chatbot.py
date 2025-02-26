@@ -30,13 +30,13 @@ db = firestore.client()
 # Remove the temporary file after initialization
 os.remove("temp_firebase_key.json")
 
-# Initialize GPT-J-6B Model
+# Initialize GPT-J-6B Model with CPU-friendly settings
 tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-j-6B")
 model = AutoModelForCausalLM.from_pretrained(
     "EleutherAI/gpt-j-6B",
-    torch_dtype=torch.float16,
+    torch_dtype=torch.float32,  # Use float32 for CPU compatibility
     low_cpu_mem_usage=True
-).to("cpu")  # Use CPU for deployment compatibility
+).to("cpu")  # Ensure the model is on CPU
 
 # Initialize Sentence Transformer for Knowledge Search
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
