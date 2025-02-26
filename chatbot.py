@@ -1,65 +1,74 @@
+import os
+import json
 import torch
+import firebase_admin
+from firebase_admin import credentials, firestore
 from transformers import AutoTokenizer, AutoModelForCausalLM
-import firebase_admin
-from firebase_admin import credentials, firestore
 from sentence_transformers import SentenceTransformer, util
-
-# Initialize Firebase
-import firebase_admin
-from firebase_admin import credentials, firestore
 import streamlit as st
 
 # Load Firebase credentials from Streamlit Secrets
 firebase_key = st.secrets["firebase"]
-cred = credentials.Certificate(firebase_key)
+
+# Save the credentials as a temporary JSON file
+with open("temp_firebase_key.json", "w") as json_file:
+    json.dump(firebase_key, json_file)
+
+# Use the temporary file to initialize Firebase
+cred = credentials.Certificate("temp_firebase_key.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# Load GPT-J-6B model and tokenizer
+# Remove the temporary file after initialization
+os.remove("temp_firebase_key.json")
+
+# Initialize GPT-J-6B Model
 tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-j-6B")
 model = AutoModelForCausalLM.from_pretrained(
-    "EleutherAI/gpt-j-6B", 
-    torch_dtype=torch.float16, 
+    "EleutherAI/gpt-j-6B",
+    torch_dtype=torch.float16,
     low_cpu_mem_usage=True
-).cuda()
+).to("cpu")  # Use CPU for deployment compatibility
 
-# Load Sentence Transformer for embeddings
+# Initialize Sentence Transformer for Knowledge Search
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
 
-# Generate Chatbot Response using GPT-J-6B
-def generate_response(prompt):
-    input_ids = tokenizer(prompt, return_tensors='pt').input_ids.cuda()
-    with torch.no_grad():
-        output = model.generate(input_ids, max_length=200, temperature=0.7)
-    return tokenizer.decode(output[0], skip_special_tokens=True)
+# Function to generate a response using GPT-J-6B
+def generate_response(prompt, max_length=100):
+    inputs = tokenizer(prompt, return_tensors="pt").input_ids.to("cpu")
+    outputs = model.generate(inputs, max_length=max_length, do_sample=True, top_p=0.95, top_k=60)
+    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return response
 
-# Save Knowledge to Firestore
+# Function to save knowledge to Firebase
 def save_knowledge(title, content):
-    # Save the document under the "knowledge_base" collection
     doc_ref = db.collection("knowledge_base").document(title)
-    doc_ref.set({"content": content})
-    print(f"Knowledge saved: {title}")
+    doc_ref.set({
+        "title": title,
+        "content": content
+    })
 
-# Retrieve Knowledge for Semantic Search
-def search_knowledge(query):
-    # Fetch all documents from Firestore under the "knowledge_base" collection
-    docs = db.collection("knowledge_base").stream()
-    texts = []
-    titles = []
+# Function to search knowledge from Firebase
+def search_knowledge(query, top_k=3):
+    knowledge_ref = db.collection("knowledge_base").stream()
+    knowledge_data = []
 
-    for doc in docs:
-        data = doc.to_dict()
-        texts.append(data['content'])
-        titles.append(doc.id)
+    for doc in knowledge_ref:
+        knowledge_data.append(doc.to_dict())
 
-    if not texts:
-        return None
+    if not knowledge_data:
+        return "No knowledge available."
 
-    # Embedding and Semantic Search
-    query_vec = embedder.encode(query, convert_to_tensor=True)
-    text_vecs = embedder.encode(texts, convert_to_tensor=True)
-    scores = util.cos_sim(query_vec, text_vecs)[0]
-    best_idx = torch.argmax(scores).item()
+    contents = [item['content'] for item in knowledge_data]
+    corpus_embeddings = embedder.encode(contents, convert_to_tensor=True)
+    query_embedding = embedder.encode(query, convert_to_tensor=True)
     
-    # Return the most relevant document
-    return texts[best_idx]
+    # Calculate cosine similarities
+    cosine_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
+    top_results = torch.topk(cosine_scores, k=top_k)
+
+    results = []
+    for score, idx in zip(top_results[0], top_results[1]):
+        results.append(contents[idx])
+
+    return results if results else "No relevant knowledge found."
