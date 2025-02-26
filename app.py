@@ -1,3 +1,8 @@
+import sys
+import os
+sys.path.append(os.path.dirname(__file__))
+from chatbot import generate_response, save_knowledge, search_knowledge
+
 import streamlit as st
 from chatbot import generate_response, save_knowledge, search_knowledge
 
