@@ -3,4 +3,4 @@ torch
 transformers
 firebase-admin
 sentence-transformers
-
+PyPDF2
