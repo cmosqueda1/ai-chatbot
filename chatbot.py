@@ -31,10 +31,10 @@ db = firestore.client()
 os.remove("temp_firebase_key.json")
 
 # Initialize Smaller Model (distilgpt2) for Compatibility with Streamlit Cloud
-tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
+tokenizer = AutoTokenizer.from_pretrained("gpt2-medium")
 model = AutoModelForCausalLM.from_pretrained(
-    "distilgpt2"
-).to("cpu")  # Ensure the model is on CPU
+    "gpt2-medium"
+).to("cpu")
 
 # Initialize Sentence Transformer for Knowledge Search
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
