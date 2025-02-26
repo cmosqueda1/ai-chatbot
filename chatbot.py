@@ -7,10 +7,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from sentence_transformers import SentenceTransformer, util
 import streamlit as st
 
-# Load Firebase credentials from Streamlit Secrets
-firebase_key = st.secrets["firebase"]
-
-# Fix special characters in the private key
+# Copy the secrets to a new dictionary for modification
+firebase_key = dict(st.secrets["firebase"])
 firebase_key["private_key"] = firebase_key["private_key"].replace("\\n", "\n")
 
 # Save the credentials as a temporary JSON file
