@@ -1,5 +1,6 @@
-torch 
-transformers 
-streamlit 
-firebase-admin 
-sentence-transformers 
+streamlit
+torch
+transformers
+firebase-admin
+sentence-transformers
+
