@@ -5,13 +5,12 @@ from firebase_admin import credentials, firestore
 from sentence_transformers import SentenceTransformer, util
 
 # Initialize Firebase
-import json
 import firebase_admin
 from firebase_admin import credentials, firestore
 import streamlit as st
 
 # Load Firebase credentials from Streamlit Secrets
-firebase_key = json.loads(st.secrets["firebase"])
+firebase_key = st.secrets["firebase"]
 cred = credentials.Certificate(firebase_key)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
