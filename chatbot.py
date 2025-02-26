@@ -30,18 +30,16 @@ db = firestore.client()
 # Remove the temporary file after initialization
 os.remove("temp_firebase_key.json")
 
-# Initialize GPT-J-6B Model with CPU-friendly settings
-tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-j-6B")
+# Initialize Smaller Model (distilgpt2) for Compatibility with Streamlit Cloud
+tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
 model = AutoModelForCausalLM.from_pretrained(
-    "EleutherAI/gpt-j-6B",
-    torch_dtype=torch.float32,  # Use float32 for CPU compatibility
-    low_cpu_mem_usage=True
+    "distilgpt2"
 ).to("cpu")  # Ensure the model is on CPU
 
 # Initialize Sentence Transformer for Knowledge Search
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
 
-# Function to generate a response using GPT-J-6B
+# Function to generate a response using distilgpt2
 def generate_response(prompt, max_length=100):
     inputs = tokenizer(prompt, return_tensors="pt").input_ids.to("cpu")
     outputs = model.generate(inputs, max_length=max_length, do_sample=True, top_p=0.95, top_k=60)
