@@ -9,15 +9,22 @@ import streamlit as st
 
 # Copy the secrets to a new dictionary for modification
 firebase_key = dict(st.secrets["firebase"])
+
+# Fix special characters in the private key
 firebase_key["private_key"] = firebase_key["private_key"].replace("\\n", "\n")
 
 # Save the credentials as a temporary JSON file
 with open("temp_firebase_key.json", "w") as json_file:
     json.dump(firebase_key, json_file, indent=4)
 
+# Debug: Print the contents of the temporary JSON file
+with open("temp_firebase_key.json", "r") as json_file:
+    print("Temporary Firebase Key JSON:", json_file.read())
+
 # Use the temporary file to initialize Firebase
 cred = credentials.Certificate("temp_firebase_key.json")
-firebase_admin.initialize_app(cred)
+if not firebase_admin._apps:  # Prevents duplicate initialization
+    firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 # Remove the temporary file after initialization
